@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Rating Table</title>
+<meta name="description" content="A seven-dimension board game rating method — sliders out of 5, one honest score out of 10.">
+<meta name="theme-color" content="#1c1714">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rating Table">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png" sizes="64x64">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1c1714;
+    --bg2:#241d18;
+    --felt:#1f3d2f;
+    --felt-edge:#2e5a44;
+    --panel:#2a221c;
+    --panel-line:#3d3128;
+    --cream:#f3e9d8;
+    --muted:#a89580;
+    --brass:#d8a657;
+    --brass-dim:#9c7a3f;
+    --red:#d9624f;
+    --amber:#e0a93f;
+    --green:#6fae6a;
+    --shadow:rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #2a201a 0%, var(--bg) 55%, #161210 100%);
+    color:var(--cream);
+    font-family:'Hanken Grotesk',sans-serif;
+    min-height:100vh;
+    padding:18px 14px 60px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto;}
+
+  /* Header */
+  header{text-align:center;margin:6px 0 22px;}
+  .kicker{
+    font-size:11px;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--brass-dim);font-weight:600;margin-bottom:6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;font-weight:900;
+    font-size:38px;line-height:.98;margin:0;
+    color:var(--cream);font-optical-sizing:auto;
+    letter-spacing:-.01em;
+  }
+  h1 em{color:var(--brass);font-style:italic;font-weight:500;}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:10px;line-height:1.45;}
+
+  /* Tabs */
+  .tabs{display:flex;gap:8px;margin:22px 0 18px;}
+  .tab{
+    flex:1;padding:11px 6px;border:1px solid var(--panel-line);
+    background:var(--panel);color:var(--muted);border-radius:13px;
+    font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    transition:.18s;letter-spacing:.01em;
+  }
+  .tab.active{
+    background:linear-gradient(180deg,#34281f,#2a211a);
+    color:var(--cream);border-color:var(--brass-dim);
+    box-shadow:0 0 0 1px rgba(216,166,87,.15) inset, 0 4px 14px var(--shadow);
+  }
+  .tab .count{
+    font-size:11px;color:var(--brass);margin-left:5px;font-weight:700;
+  }
+
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--panel-line);
+    border-radius:18px;padding:18px 16px;margin-bottom:16px;
+    box-shadow:0 10px 30px -12px var(--shadow);
+  }
+
+  label.fld{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px;}
+  input.txt,textarea.txt{
+    width:100%;background:#181310;border:1px solid var(--panel-line);
+    color:var(--cream);font-family:inherit;font-size:16px;
+    padding:12px 13px;border-radius:11px;outline:none;transition:.15s;
+  }
+  input.txt:focus,textarea.txt:focus{border-color:var(--brass-dim);box-shadow:0 0 0 3px rgba(216,166,87,.12);}
+  textarea.txt{resize:vertical;min-height:62px;font-size:14.5px;}
+
+  /* Dimension rows */
+  .dim{padding:15px 0;border-bottom:1px solid var(--panel-line);}
+  .dim:last-child{border-bottom:none;}
+  .dim-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .dim-name{font-weight:700;font-size:15.5px;}
+  .dim-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35;}
+  .dim-val{
+    font-family:'Fraunces',serif;font-weight:600;font-size:26px;
+    min-width:46px;text-align:right;line-height:1;flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* Slider */
+  .srow{margin-top:13px;position:relative;}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:34px;
+    background:transparent;cursor:pointer;margin:0;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:8px;border-radius:6px;
+    background:linear-gradient(90deg,var(--red) 0%,var(--amber) 44%,var(--green) 100%);
+    border:1px solid rgba(0,0,0,.3);
+  }
+  input[type=range]::-moz-range-track{
+    height:8px;border-radius:6px;
+    background:linear-gradient(90deg,var(--red) 0%,var(--amber) 44%,var(--green) 100%);
+    border:1px solid rgba(0,0,0,.3);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:26px;height:26px;border-radius:50%;margin-top:-10px;
+    background:radial-gradient(circle at 35% 30%,#fbe9c4,var(--brass) 70%);
+    border:2px solid #2a211a;
+    box-shadow:0 3px 8px rgba(0,0,0,.5);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:24px;height:24px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fbe9c4,var(--brass) 70%);
+    border:2px solid #2a211a;box-shadow:0 3px 8px rgba(0,0,0,.5);
+  }
+  .scale-marks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:3px;letter-spacing:.02em;}
+  .scale-marks .mid{color:var(--brass-dim);font-weight:700;}
+
+  /* Overall score block */
+  .score-wrap{text-align:center;padding:6px 0 4px;}
+  .score-num{
+    font-family:'Fraunces',serif;font-weight:900;font-size:74px;line-height:.9;
+    font-variant-numeric:tabular-nums;
+  }
+  .score-num span{font-size:30px;font-weight:500;color:var(--muted);}
+  .verdict{font-size:15px;font-weight:700;letter-spacing:.04em;margin-top:6px;text-transform:uppercase;}
+  .verdict-note{font-size:12.5px;color:var(--muted);margin-top:3px;}
+  .ring{display:block;margin:0 auto;}
+
+  /* Weights panel */
+  .acc{margin-top:4px;}
+  .acc-head{
+    display:flex;justify-content:space-between;align-items:center;
+    cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;
+    padding:4px 0;user-select:none;
+  }
+  .acc-head .chev{transition:.2s;font-size:12px;}
+  .acc.open .chev{transform:rotate(180deg);}
+  .acc-body{display:none;padding-top:8px;}
+  .acc.open .acc-body{display:block;}
+  .wrow{display:flex;align-items:center;gap:12px;padding:7px 0;}
+  .wrow .wn{flex:1;font-size:14px;}
+  .wrow input[type=range]{flex:1.2;height:26px;}
+  .wrow input[type=range]::-webkit-slider-runnable-track{background:#473827;}
+  .wrow input[type=range]::-moz-range-track{background:#473827;}
+  .wrow .wv{width:34px;text-align:right;font-weight:700;color:var(--brass);font-variant-numeric:tabular-nums;font-size:14px;}
+
+  /* Buttons */
+  .btn{
+    width:100%;padding:15px;border:none;border-radius:13px;
+    font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
+    transition:.15s;letter-spacing:.02em;
+  }
+  .btn-primary{
+    background:linear-gradient(180deg,#e6b85f,var(--brass));
+    color:#241a0c;box-shadow:0 6px 18px -6px rgba(216,166,87,.6);
+  }
+  .btn-primary:active{transform:translateY(1px);}
+  .btn-ghost{background:transparent;border:1px solid var(--panel-line);color:var(--muted);margin-top:9px;}
+  .btn-row{display:flex;gap:9px;}
+  .btn-row .btn{flex:1;}
+
+  /* Collection */
+  .sortbar{display:flex;gap:7px;margin-bottom:13px;align-items:center;}
+  .sortbar .lbl{font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;}
+  .chip{
+    padding:6px 12px;border:1px solid var(--panel-line);background:var(--panel);
+    color:var(--muted);border-radius:20px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;
+  }
+  .chip.on{background:#34281f;color:var(--cream);border-color:var(--brass-dim);}
+
+  .game{
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--panel-line);border-radius:15px;
+    padding:14px 15px;margin-bottom:11px;
+  }
+  .game-head{display:flex;align-items:center;gap:13px;cursor:pointer;}
+  .badge{
+    width:50px;height:50px;border-radius:12px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:900;font-size:22px;
+    color:#1a1410;font-variant-numeric:tabular-nums;
+    box-shadow:0 4px 10px -3px rgba(0,0,0,.5);
+  }
+  .game-info{flex:1;min-width:0;}
+  .game-name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .game-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  .game-chev{color:var(--muted);font-size:13px;transition:.2s;}
+  .game.open .game-chev{transform:rotate(180deg);}
+  .game-detail{display:none;margin-top:13px;padding-top:13px;border-top:1px solid var(--panel-line);}
+  .game.open .game-detail{display:block;}
+  .brk{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;}
+  .brk .bn{color:var(--muted);}
+  .brk .bv{font-weight:700;font-variant-numeric:tabular-nums;}
+  .gnotes{font-size:13.5px;color:var(--cream);background:#181310;border-radius:10px;padding:10px 12px;margin-top:10px;line-height:1.45;}
+  .gactions{display:flex;gap:9px;margin-top:13px;}
+  .gactions .btn{padding:10px;font-size:14px;}
+  .btn-del{background:transparent;border:1px solid #5a2e2a;color:var(--red);}
+  .btn-edit{background:transparent;border:1px solid var(--panel-line);color:var(--cream);}
+
+  .empty{text-align:center;color:var(--muted);padding:46px 20px;}
+  .empty .ico{font-size:42px;margin-bottom:10px;}
+  .empty p{font-size:14px;line-height:1.5;}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);
+    background:#34281f;border:1px solid var(--brass-dim);color:var(--cream);
+    padding:13px 22px;border-radius:30px;font-weight:600;font-size:14px;
+    box-shadow:0 10px 30px var(--shadow);opacity:0;transition:.32s;z-index:50;pointer-events:none;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+  .editing-banner{
+    background:#34281f;border:1px solid var(--brass-dim);border-radius:11px;
+    padding:9px 13px;font-size:13px;color:var(--brass);margin-bottom:14px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .editing-banner button{background:none;border:none;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;text-decoration:underline;}
+
+  /* Header action links */
+  .head-actions{display:flex;gap:16px;justify-content:center;margin-top:14px;}
+  .head-link{
+    background:none;border:none;color:var(--brass);font-family:inherit;font-size:13px;
+    font-weight:600;cursor:pointer;letter-spacing:.03em;display:inline-flex;align-items:center;gap:5px;
+    padding:4px 2px;
+  }
+  .head-link:disabled{color:var(--muted);opacity:.5;}
+  .head-link .dot{width:5px;height:5px;border-radius:50%;background:var(--brass);}
+
+  /* Export / summary buttons on score card */
+  .share-row{display:flex;gap:9px;margin-top:14px;}
+  .share-row .btn{padding:12px;font-size:14px;}
+  .btn-brass-outline{background:transparent;border:1px solid var(--brass-dim);color:var(--brass);}
+
+  /* Settings */
+  .set-note{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;}
+
+  /* Modal */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(10,8,6,.72);backdrop-filter:blur(3px);
+    display:none;align-items:flex-end;justify-content:center;z-index:60;padding:0;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--panel-line);border-top-color:var(--brass-dim);
+    border-radius:20px 20px 0 0;padding:22px 20px 34px;width:100%;max-width:560px;
+    max-height:86vh;overflow-y:auto;box-shadow:0 -12px 40px var(--shadow);
+    animation:slideUp .28s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(40px);opacity:.5;}to{transform:translateY(0);opacity:1;}}
+  .modal h2{font-family:'Fraunces',serif;font-weight:900;font-size:26px;margin:0 0 4px;}
+  .modal h2 em{color:var(--brass);font-style:italic;font-weight:500;}
+  .modal .mclose{float:right;background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer;line-height:1;margin-top:-4px;}
+  .modal .mlead{color:var(--muted);font-size:14px;line-height:1.55;margin:8px 0 18px;}
+  .method-dim{padding:12px 0;border-bottom:1px solid var(--panel-line);}
+  .method-dim:last-child{border-bottom:none;}
+  .method-dim .mn{font-weight:700;font-size:15px;color:var(--cream);}
+  .method-dim .mn .num{color:var(--brass);font-family:'Fraunces',serif;margin-right:8px;}
+  .method-dim .md{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.4;}
+  .scale-key{display:flex;gap:6px;margin:16px 0 4px;}
+  .scale-key .sk{flex:1;text-align:center;padding:9px 4px;border-radius:9px;font-size:11px;font-weight:700;color:#1a1410;}
+
+  canvas#cardCanvas{display:none;}
+
+  /* Box art uploader */
+  .art-row{display:flex;gap:13px;align-items:center;}
+  .art-thumb{
+    width:74px;height:74px;border-radius:12px;flex-shrink:0;object-fit:cover;
+    border:1px solid var(--panel-line);background:#181310;display:none;
+  }
+  .art-empty{
+    width:74px;height:74px;border-radius:12px;flex-shrink:0;
+    border:1px dashed var(--panel-line);background:#181310;
+    display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--brass-dim);
+  }
+  .art-btns{display:flex;flex-direction:column;gap:7px;flex:1;}
+  .art-btns .mini{
+    padding:9px 12px;border-radius:10px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+    background:transparent;border:1px solid var(--brass-dim);color:var(--brass);text-align:center;
+  }
+  .art-btns .mini.rm{border-color:#5a2e2a;color:var(--red);display:none;}
+
+  /* Format selector */
+  .fmt-wrap{margin-top:14px;}
+  .fmt-lbl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px;}
+  .seg{display:flex;gap:6px;}
+  .seg button{
+    flex:1;padding:10px 4px;border:1px solid var(--panel-line);background:var(--panel);
+    color:var(--muted);border-radius:10px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1;transition:.15s;
+  }
+  .seg button .sz{font-size:10px;font-weight:500;color:var(--muted);}
+  .seg button.on{background:#34281f;color:var(--cream);border-color:var(--brass-dim);}
+  .seg button.on .sz{color:var(--brass);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Board Game Ratings</div>
+    <h1>The Rating <em>Table</em></h1>
+    <div class="sub">Score seven dimensions <strong style="color:var(--brass)">1–5</strong> (3 = average).<br>They combine into one overall <strong style="color:var(--brass)">out of 10</strong>, where 5 is dead average.</div>
+    <div class="head-actions">
+      <button class="head-link" onclick="openMethod()"><span class="dot"></span> The Method</button>
+      <button class="head-link" id="installBtn" style="display:none" onclick="doInstall()">⤓ Install App</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tabRate" onclick="switchTab('rate')">Rate a Game</button>
+    <button class="tab" id="tabColl" onclick="switchTab('coll')">Collection<span class="count" id="collCount"></span></button>
+  </div>
+
+  <!-- RATE VIEW -->
+  <div id="rateView">
+    <div id="editBanner" class="editing-banner" style="display:none;">
+      <span id="editBannerText">Editing saved game</span>
+      <button onclick="cancelEdit()">cancel</button>
+    </div>
+
+    <div class="card">
+      <label class="fld" for="gameName">Game</label>
+      <input class="txt" id="gameName" placeholder="e.g. Brass: Birmingham" autocomplete="off">
+    </div>
+
+    <!-- Score readout -->
+    <div class="card">
+      <div class="score-wrap">
+        <svg class="ring" width="118" height="118" viewBox="0 0 118 118">
+          <circle cx="59" cy="59" r="51" fill="none" stroke="#3d3128" stroke-width="9"/>
+          <circle id="ringFill" cx="59" cy="59" r="51" fill="none" stroke="var(--brass)" stroke-width="9"
+                  stroke-linecap="round" stroke-dasharray="320.4" stroke-dashoffset="320.4"
+                  transform="rotate(-90 59 59)" style="transition:.5s ease, stroke .4s;"/>
+          <text id="ringNum" x="59" y="59" text-anchor="middle" dominant-baseline="central"
+                font-family="Fraunces,serif" font-weight="900" font-size="34" fill="#f3e9d8">5.0</text>
+        </svg>
+        <div class="verdict" id="verdict">Perfectly Average</div>
+        <div class="verdict-note" id="verdictNote">Right at the middle of the pack.</div>
+      </div>
+      <div class="fmt-wrap">
+        <div class="fmt-lbl">Scorecard format</div>
+        <div class="seg" id="fmtSeg">
+          <button data-fmt="wide" onclick="setFormat('wide')">Wide<span class="sz">16:9 · video</span></button>
+          <button data-fmt="square" onclick="setFormat('square')">Square<span class="sz">1:1 · post</span></button>
+          <button data-fmt="vertical" onclick="setFormat('vertical')">Vertical<span class="sz">9:16 · short</span></button>
+        </div>
+      </div>
+      <div class="share-row">
+        <button class="btn btn-brass-outline" onclick="exportCurrent()">⤓ Scorecard PNG</button>
+        <button class="btn btn-brass-outline" onclick="copyCurrent()">⧉ Copy summary</button>
+      </div>
+    </div>
+
+    <!-- Dimensions -->
+    <div class="card" id="dimCard"></div>
+
+    <!-- Weights -->
+    <div class="card">
+      <div class="acc" id="wAcc">
+        <div class="acc-head" onclick="document.getElementById('wAcc').classList.toggle('open')">
+          <span>⚖︎&nbsp; Adjust weights — how much each dimension counts</span>
+          <span class="chev">▼</span>
+        </div>
+        <div class="acc-body" id="weightBody"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label class="fld">Box art (optional)</label>
+      <div class="art-row">
+        <img class="art-thumb" id="artThumb" alt="box art">
+        <div class="art-empty" id="artEmpty">🎲</div>
+        <div class="art-btns">
+          <button class="mini" id="artAddBtn" onclick="document.getElementById('artFile').click()">Add box art</button>
+          <button class="mini rm" id="artRmBtn" onclick="removeArt()">Remove</button>
+        </div>
+      </div>
+      <input type="file" id="artFile" accept="image/*" style="display:none" onchange="handleArtFile(this)">
+    </div>
+
+    <div class="card">
+      <label class="fld" for="notes">Notes (optional)</label>
+      <textarea class="txt" id="notes" placeholder="First impressions, who you played with, house rules…"></textarea>
+    </div>
+
+    <div class="card">
+      <label class="fld" for="channelName">Channel name — printed on exported scorecards</label>
+      <input class="txt" id="channelName" placeholder="e.g. Meeple & Modern" autocomplete="off" oninput="saveChannel()">
+      <div class="set-note">Shown on the bottom of every scorecard image and in copied summaries. Set once — it's remembered.</div>
+    </div>
+
+    <button class="btn btn-primary" id="saveBtn" onclick="saveGame()">Save to Collection</button>
+    <button class="btn btn-ghost" onclick="resetForm(true)">Reset sliders to average</button>
+  </div>
+
+  <!-- COLLECTION VIEW -->
+  <div id="collView" style="display:none;">
+    <div class="sortbar">
+      <span class="lbl">Sort</span>
+      <button class="chip on" id="sortScore" onclick="setSort('score')">Score</button>
+      <button class="chip" id="sortName" onclick="setSort('name')">Name</button>
+      <button class="chip" id="sortDate" onclick="setSort('date')">Recent</button>
+    </div>
+    <div id="gameList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Method modal -->
+<div class="modal-bg" id="methodModal" onclick="if(event.target===this)closeMethod()">
+  <div class="modal">
+    <button class="mclose" onclick="closeMethod()">×</button>
+    <h2>The <em>Method</em></h2>
+    <div class="mlead">Every game gets scored on seven dimensions, each from <strong>1 to 5</strong> where <strong>3 is a genuinely average game</strong>. Those combine — weighted by what matters to you — into one overall <strong>out of 10</strong>, where <strong>5 is dead average</strong>. The point isn't to be nice; it's to be consistent, so a 7 always means the same thing across every review.</div>
+    <div class="scale-key" id="scaleKey"></div>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:6px;">the 1–5 slider scale</div>
+    <div id="methodDims"></div>
+  </div>
+</div>
+
+<canvas id="cardCanvas" width="1280" height="720"></canvas>
+
+<script>
+/* ---------- Config: the seven dimensions ---------- */
+const DIMS = [
+  {key:'fun',   name:'Fun & Enjoyment',     desc:'The bottom line — did you actually want to keep playing?'},
+  {key:'depth', name:'Depth & Strategy',    desc:'Meaningful decisions and room to get better over time.'},
+  {key:'replay',name:'Replayability',       desc:'Does it stay fresh, or feel solved after a few plays?'},
+  {key:'inter', name:'Player Interaction',  desc:'Engagement between players vs. solitaire side-by-side.'},
+  {key:'access',name:'Accessibility',       desc:'How easy to learn, teach, and bring new people into.'},
+  {key:'theme', name:'Theme & Immersion',   desc:'How well the theme fuses with the mechanics.'},
+  {key:'comp',  name:'Components & Production', desc:'Physical quality, art, and table presence.'},
+];
+
+const VAL_WORDS = {1:'Terrible',2:'Bad',3:'Weak',4:'Below avg',5:'Average',6:'Above avg',7:'Good',8:'Great',9:'Excellent',10:'Best in class'};
+
+/* ---------- State ---------- */
+let ratings = {};
+let weights = {};
+let editingId = null;
+let games = [];
+let sortMode = 'score';
+let channel = '';
+let currentArt = null;        // dataURL of box art for the in-progress rating
+let exportFormat = 'wide';    // wide | square | vertical
+
+DIMS.forEach(d => { ratings[d.key] = 3; weights[d.key] = 3; }); // ratings 1-5 (3=avg), weights 1-5 (3=equal)
+
+/* ---------- Storage: localStorage first (for standalone GitHub deploy),
+   with graceful fallback to Claude artifact storage or in-memory ---------- */
+const _mem = {};
+const Store = {
+  async get(k){
+    try { const v = localStorage.getItem(k); if (v !== null) return v; } catch(e){}
+    try { if (window.storage){ const r = await window.storage.get(k); if (r && r.value != null) return r.value; } } catch(e){}
+    return _mem[k] ?? null;
+  },
+  async set(k, v){
+    let ok = false;
+    try { localStorage.setItem(k, v); ok = true; } catch(e){}
+    if (!ok){ try { if (window.storage){ await window.storage.set(k, v); ok = true; } } catch(e){} }
+    _mem[k] = v;
+    return ok;
+  },
+  async remove(k){
+    try { localStorage.removeItem(k); } catch(e){}
+    try { if (window.storage) await window.storage.delete(k); } catch(e){}
+    delete _mem[k];
+  }
+};
+
+/* box art + format persistence */
+async function setArt(id, data){ return Store.set('bgr:art:'+id, data); }
+async function getArt(id){ return Store.get('bgr:art:'+id); }
+async function delArt(id){ return Store.remove('bgr:art:'+id); }
+
+async function loadAll(){
+  try { const g = await Store.get('bgr:games'); games = g ? JSON.parse(g) : []; } catch(e){ games = []; }
+  try { const w = await Store.get('bgr:weights'); if (w) weights = JSON.parse(w); } catch(e){}
+  try { const c = await Store.get('bgr:channel'); if (c){ channel = c; document.getElementById('channelName').value = c; } } catch(e){}
+  try { const f = await Store.get('bgr:fmt'); if (f) exportFormat = f; } catch(e){}
+  applyFormatUI();
+  renderWeights(); recompute(); renderCollection(); updateCount();
+}
+async function persistGames(){
+  const ok = await Store.set('bgr:games', JSON.stringify(games));
+  if (!ok) toast('Heads up: couldn’t save to this browser');
+}
+async function persistWeights(){ await Store.set('bgr:weights', JSON.stringify(weights)); }
+async function saveChannel(){
+  channel = document.getElementById('channelName').value.trim();
+  await Store.set('bgr:channel', channel);
+}
+
+/* ---------- Color + verdict ---------- */
+function colorFrac(f){
+  f = Math.max(0, Math.min(1, f));
+  // f<.5 -> red->amber, f>.5 -> amber->green
+  const h = f <= .5 ? 8 + (f/.5)*(44-8) : 44 + ((f-.5)/.5)*(130-44);
+  return `hsl(${h.toFixed(0)} 62% 56%)`;
+}
+function overallColor(s){ return colorFrac(s/10); }          // s in 0..10
+function dimColor(v, scale){ return colorFrac((v-1)/((scale||5)-1)); } // v in 1..scale
+function verdictFor(s){
+  if (s >= 9)   return ['Masterpiece','A standout you’d recommend to anyone.'];
+  if (s >= 8)   return ['Excellent','A top-shelf game worth keeping.'];
+  if (s >= 7)   return ['Great','Clearly above the crowd.'];
+  if (s >= 6)   return ['Good','Comfortably better than average.'];
+  if (s > 5.2)  return ['Solid','A notch above the middle.'];
+  if (s >= 4.8) return ['Perfectly Average','Right at the middle of the pack.'];
+  if (s >= 4)   return ['Below Average','Some rough edges drag it down.'];
+  if (s >= 3)   return ['Weak','Hard to recommend as-is.'];
+  if (s >= 2)   return ['Poor','Not worth the table time.'];
+  return ['Avoid','A miss on nearly every front.'];
+}
+
+/* ---------- Build dimension sliders ---------- */
+function renderDims(){
+  const c = document.getElementById('dimCard');
+  c.innerHTML = '';
+  DIMS.forEach(d => {
+    const row = document.createElement('div');
+    row.className = 'dim';
+    row.innerHTML = `
+      <div class="dim-top">
+        <div>
+          <div class="dim-name">${d.name}</div>
+          <div class="dim-desc">${d.desc}</div>
+        </div>
+        <div class="dim-val" id="val-${d.key}">3</div>
+      </div>
+      <div class="srow">
+        <input type="range" min="1" max="5" step="1" value="${ratings[d.key]}" id="rng-${d.key}"
+               onpointerdown="dropFocus()" oninput="onRate('${d.key}', this.value)">
+        <div class="scale-marks"><span>1</span><span class="mid">3 · avg</span><span>5</span></div>
+      </div>`;
+    c.appendChild(row);
+  });
+}
+function dropFocus(){
+  // dismiss the keyboard / blur the name box so the page doesn't snap to the top
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+function onRate(key, v){
+  const y = window.scrollY;
+  ratings[key] = +v;
+  const el = document.getElementById('val-'+key);
+  el.textContent = v;
+  el.style.color = dimColor(+v);
+  recompute();
+  requestAnimationFrame(() => { if (Math.abs(window.scrollY - y) > 3) window.scrollTo(0, y); });
+}
+
+/* ---------- Build weight sliders ---------- */
+function renderWeights(){
+  const b = document.getElementById('weightBody');
+  b.innerHTML = '';
+  DIMS.forEach(d => {
+    const row = document.createElement('div');
+    row.className = 'wrow';
+    row.innerHTML = `
+      <span class="wn">${d.name}</span>
+      <input type="range" min="1" max="5" step="1" value="${weights[d.key]}" id="wt-${d.key}"
+             onpointerdown="dropFocus()" oninput="onWeight('${d.key}', this.value)">
+      <span class="wv" id="wtv-${d.key}">×${weights[d.key]}</span>`;
+    b.appendChild(row);
+  });
+}
+function onWeight(key, v){
+  const y = window.scrollY;
+  weights[key] = +v;
+  document.getElementById('wtv-'+key).textContent = '×'+v;
+  persistWeights();
+  recompute();
+  requestAnimationFrame(() => { if (Math.abs(window.scrollY - y) > 3) window.scrollTo(0, y); });
+}
+
+/* ---------- Compute overall ---------- */
+function computeOverall(r, w){
+  let num=0, den=0;
+  DIMS.forEach(d => { num += r[d.key]*w[d.key]; den += w[d.key]; });
+  const avg5 = den ? num/den : 3;     // weighted average on the 1-5 slider scale
+  return (avg5 - 1) / 4 * 10;          // rescaled to 0-10 so that 3 -> 5 (true average)
+}
+function recompute(){
+  const s = computeOverall(ratings, weights);
+  const col = overallColor(s);
+  document.getElementById('ringNum').textContent = s.toFixed(1);
+  document.getElementById('ringNum').setAttribute('fill', col);
+  const circ = 320.4;
+  document.getElementById('ringFill').style.strokeDashoffset = circ*(1 - s/10);
+  document.getElementById('ringFill').setAttribute('stroke', col);
+  const [v, note] = verdictFor(s);
+  const vEl = document.getElementById('verdict');
+  vEl.textContent = v; vEl.style.color = col;
+  document.getElementById('verdictNote').textContent = note;
+}
+
+/* ---------- Save ---------- */
+async function saveGame(){
+  const name = document.getElementById('gameName').value.trim();
+  if (!name){ toast('Give the game a name first'); document.getElementById('gameName').focus(); return; }
+  const overall = computeOverall(ratings, weights);
+  const entry = {
+    id: editingId || ('g'+Date.now()),
+    name,
+    ratings: {...ratings},
+    weights: {...weights},
+    scale: 5,
+    overall,
+    hasArt: !!currentArt,
+    notes: document.getElementById('notes').value.trim(),
+    savedAt: Date.now()
+  };
+  if (currentArt) await setArt(entry.id, currentArt); else await delArt(entry.id);
+  if (editingId){
+    const i = games.findIndex(g => g.id === editingId);
+    if (i >= 0){ entry.savedAt = games[i].savedAt; games[i] = entry; }
+    toast('Updated “'+name+'”');
+  } else {
+    games.push(entry);
+    toast('Saved “'+name+'”');
+  }
+  await persistGames();
+  editingId = null;
+  document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('saveBtn').textContent = 'Save to Collection';
+  resetForm(false);
+  renderCollection(); updateCount();
+}
+
+function resetForm(toAverage){
+  document.getElementById('gameName').value = '';
+  document.getElementById('notes').value = '';
+  currentArt = null; showArtPreview();
+  DIMS.forEach(d => {
+    ratings[d.key] = 3;
+    document.getElementById('rng-'+d.key).value = 3;
+    const el = document.getElementById('val-'+d.key);
+    el.textContent = '3'; el.style.color = dimColor(3);
+  });
+  recompute();
+  if (toAverage) toast('Reset to average');
+}
+
+/* ---------- Collection ---------- */
+function setSort(m){
+  sortMode = m;
+  ['score','name','date'].forEach(x =>
+    document.getElementById('sort'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('on', x===m));
+  renderCollection();
+}
+function sortedGames(){
+  const arr = [...games];
+  if (sortMode==='score') arr.sort((a,b)=>b.overall-a.overall);
+  else if (sortMode==='name') arr.sort((a,b)=>a.name.localeCompare(b.name));
+  else arr.sort((a,b)=>b.savedAt-a.savedAt);
+  return arr;
+}
+function renderCollection(){
+  const list = document.getElementById('gameList');
+  if (!games.length){
+    list.innerHTML = `<div class="empty"><div class="ico">🎲</div><p>No games rated yet.<br>Rate one and save it — it’ll live here.</p></div>`;
+    return;
+  }
+  list.innerHTML = '';
+  sortedGames().forEach(g => {
+    const col = overallColor(g.overall);
+    const date = new Date(g.savedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    const [v] = verdictFor(g.overall);
+    const card = document.createElement('div');
+    card.className = 'game';
+    let brk = DIMS.map(d =>
+      `<div class="brk"><span class="bn">${d.name}</span><span class="bv" style="color:${dimColor(g.ratings[d.key], g.scale||10)}">${g.ratings[d.key]}<span style="color:var(--muted);font-weight:400;font-size:11px"> / ${g.scale||10}</span></span></div>`
+    ).join('');
+    card.innerHTML = `
+      <div class="game-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="badge" style="background:linear-gradient(180deg,${col},${col})">${g.overall.toFixed(1)}</div>
+        <div class="game-info">
+          <div class="game-name">${escapeHtml(g.name)}</div>
+          <div class="game-meta">${v} · ${date}</div>
+        </div>
+        <span class="game-chev">▼</span>
+      </div>
+      <div class="game-detail">
+        ${brk}
+        ${g.notes ? `<div class="gnotes">${escapeHtml(g.notes)}</div>` : ''}
+        <div class="gactions">
+          <button class="btn btn-edit" onclick="editGame('${g.id}')">Edit</button>
+          <button class="btn btn-brass-outline" onclick="exportGame('${g.id}')">⤓ PNG</button>
+          <button class="btn btn-del" onclick="deleteGame('${g.id}')">Delete</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+async function editGame(id){
+  const g = games.find(x=>x.id===id);
+  if (!g) return;
+  editingId = id;
+  document.getElementById('gameName').value = g.name;
+  document.getElementById('notes').value = g.notes || '';
+  currentArt = g.hasArt ? (await getArt(id)) : null; showArtPreview();
+  DIMS.forEach(d => {
+    let rv = g.ratings[d.key];
+    if ((g.scale||10) !== 5) rv = Math.max(1, Math.min(5, Math.round((rv-1)/((g.scale||10)-1)*4)+1)); // map legacy to 1-5
+    ratings[d.key] = rv;
+    weights[d.key] = g.weights ? g.weights[d.key] : 3;
+    document.getElementById('rng-'+d.key).value = ratings[d.key];
+    const el = document.getElementById('val-'+d.key);
+    el.textContent = ratings[d.key]; el.style.color = dimColor(ratings[d.key]);
+  });
+  renderWeights(); recompute();
+  document.getElementById('editBannerText').textContent = 'Editing “'+g.name+'”';
+  document.getElementById('editBanner').style.display = 'flex';
+  document.getElementById('saveBtn').textContent = 'Update Game';
+  switchTab('rate');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function cancelEdit(){
+  editingId = null;
+  document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('saveBtn').textContent = 'Save to Collection';
+  resetForm(false);
+}
+async function deleteGame(id){
+  const g = games.find(x=>x.id===id);
+  if (!g) return;
+  if (!confirm('Delete “'+g.name+'” from your collection?')) return;
+  games = games.filter(x=>x.id!==id);
+  await delArt(id);
+  await persistGames();
+  renderCollection(); updateCount();
+  toast('Deleted');
+}
+
+/* ---------- UI helpers ---------- */
+function switchTab(t){
+  const rate = t==='rate';
+  document.getElementById('rateView').style.display = rate?'block':'none';
+  document.getElementById('collView').style.display = rate?'none':'block';
+  document.getElementById('tabRate').classList.toggle('active', rate);
+  document.getElementById('tabColl').classList.toggle('active', !rate);
+  if (!rate) renderCollection();
+}
+function updateCount(){
+  document.getElementById('collCount').textContent = games.length ? '('+games.length+')' : '';
+}
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- The Method modal ---------- */
+function openMethod(){
+  const dimsEl = document.getElementById('methodDims');
+  dimsEl.innerHTML = DIMS.map((d,i) =>
+    `<div class="method-dim"><div class="mn"><span class="num">${i+1}</span>${d.name}</div><div class="md">${d.desc}</div></div>`
+  ).join('');
+  const key = document.getElementById('scaleKey');
+  key.innerHTML = [1,2,3,4,5].map(n => {
+    const words = {1:'Poor',2:'Below',3:'Average',4:'Good',5:'Great'};
+    return `<div class="sk" style="background:${dimColor(n)}">${n}<br>${words[n]}</div>`;
+  }).join('');
+  document.getElementById('methodModal').classList.add('show');
+}
+function closeMethod(){ document.getElementById('methodModal').classList.remove('show'); }
+
+/* ---------- Build a summary text (for video descriptions) ---------- */
+function summaryText(name, r, scale, overall){
+  const sc = scale || 5;
+  const line = DIMS.map(d => `${d.name.split(' ')[0]} ${r[d.key]}`).join(' · ');
+  const [v] = verdictFor(overall);
+  let out = `🎲 ${name} — ${overall.toFixed(1)}/10 (${v})\n${line}  (each /${sc})`;
+  if (channel) out += `\nRated on ${channel} · 7-dimension method, 5 = average`;
+  return out;
+}
+function copyCurrent(){
+  const name = document.getElementById('gameName').value.trim() || 'Untitled game';
+  const overall = computeOverall(ratings, weights);
+  const text = summaryText(name, ratings, 5, overall);
+  navigator.clipboard.writeText(text).then(()=>toast('Summary copied'),()=>toast('Copy failed'));
+}
+
+/* ---------- Box art upload ---------- */
+function handleArtFile(input){
+  const f = input.files && input.files[0];
+  if (!f){ return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800; let w = img.width, h = img.height;
+      if (Math.max(w,h) > MAX){ const s = MAX/Math.max(w,h); w = Math.round(w*s); h = Math.round(h*s); }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      currentArt = c.toDataURL('image/jpeg', 0.82);
+      showArtPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(f);
+  input.value = '';
+}
+function showArtPreview(){
+  const thumb = document.getElementById('artThumb');
+  const empty = document.getElementById('artEmpty');
+  const rm = document.getElementById('artRmBtn');
+  const add = document.getElementById('artAddBtn');
+  if (currentArt){
+    thumb.src = currentArt; thumb.style.display = 'block'; empty.style.display = 'none';
+    rm.style.display = 'block'; add.textContent = 'Change box art';
+  } else {
+    thumb.style.display = 'none'; empty.style.display = 'flex';
+    rm.style.display = 'none'; add.textContent = 'Add box art';
+  }
+}
+function removeArt(){ currentArt = null; showArtPreview(); }
+
+/* ---------- Scorecard format ---------- */
+function setFormat(f){ exportFormat = f; Store.set('bgr:fmt', f); applyFormatUI(); }
+function applyFormatUI(){
+  document.querySelectorAll('#fmtSeg button').forEach(b =>
+    b.classList.toggle('on', b.dataset.fmt === exportFormat));
+}
+
+/* ---------- Scorecard PNG (multi-format, with box art) ---------- */
+function cardCol(frac){ frac=Math.max(0,Math.min(1,frac)); const h = frac<=.5?8+(frac/.5)*36:44+((frac-.5)/.5)*86; return `hsl(${h.toFixed(0)},62%,56%)`; }
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function loadImage(src){ return new Promise((res)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; }); }
+
+function drawFrame(x,W,H){
+  const g = x.createRadialGradient(W*0.5, H*0.08, 80, W*0.5, H*0.08, Math.max(W,H)*0.95);
+  g.addColorStop(0,'#2a201a'); g.addColorStop(0.55,'#1c1714'); g.addColorStop(1,'#141110');
+  x.fillStyle = g; x.fillRect(0,0,W,H);
+  x.strokeStyle = 'rgba(216,166,87,.35)'; x.lineWidth = Math.max(3, Math.round(W*0.0026));
+  x.strokeRect(W*0.022, H*0.022, W*0.956, H*0.956);
+}
+function drawArt(x, im, name, dx, dy, dw, dh, rad){
+  x.save();
+  roundRect(x, dx, dy, dw, dh, rad); x.clip();
+  if (im){
+    const ar = im.width/im.height, dar = dw/dh; let sw,sh,sx,sy;
+    if (ar > dar){ sh = im.height; sw = sh*dar; sx = (im.width-sw)/2; sy = 0; }
+    else { sw = im.width; sh = sw/dar; sx = 0; sy = (im.height-sh)/2; }
+    x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh);
+  } else {
+    // monogram placeholder
+    x.fillStyle = '#181310'; x.fillRect(dx,dy,dw,dh);
+    x.fillStyle = 'rgba(216,166,87,.9)';
+    x.textAlign='center'; x.textBaseline='middle';
+    x.font = `900 ${Math.round(Math.min(dw,dh)*0.5)}px Fraunces, Georgia, serif`;
+    x.fillText((name.trim()[0]||'?').toUpperCase(), dx+dw/2, dy+dh/2 - dh*0.02);
+    x.fillStyle = 'rgba(168,149,128,.8)';
+    x.font = `600 ${Math.round(Math.min(dw,dh)*0.07)}px 'Hanken Grotesk', Arial, sans-serif`;
+    x.fillText('NO BOX ART', dx+dw/2, dy+dh*0.82);
+  }
+  x.restore();
+  x.strokeStyle = 'rgba(216,166,87,.45)'; x.lineWidth = Math.max(2, Math.round(dw*0.008));
+  roundRect(x, dx, dy, dw, dh, rad); x.stroke();
+}
+function drawRing(x, cx, cy, rad, lw, overall){
+  x.lineWidth = lw; x.lineCap='butt';
+  x.strokeStyle = '#3d3128'; x.beginPath(); x.arc(cx,cy,rad,0,Math.PI*2); x.stroke();
+  const oc = cardCol(overall/10);
+  x.strokeStyle = oc; x.lineCap='round';
+  x.beginPath(); x.arc(cx,cy,rad,-Math.PI/2, -Math.PI/2 + Math.PI*2*(overall/10)); x.stroke();
+  x.lineCap='butt';
+  x.fillStyle = oc; x.textAlign='center'; x.textBaseline='middle';
+  x.font = `900 ${Math.round(rad*0.72)}px Fraunces, Georgia, serif`;
+  x.fillText(overall.toFixed(1), cx, cy - rad*0.04);
+  x.fillStyle = '#a89580'; x.font = `600 ${Math.round(rad*0.17)}px 'Hanken Grotesk', Arial, sans-serif`;
+  x.fillText('OUT OF 10', cx, cy + rad*0.44);
+  return oc;
+}
+function drawBars(x, r, sc, bx, by, bw, gap, barH, fLabel, fVal){
+  x.textBaseline = 'alphabetic';
+  DIMS.forEach((d,i)=>{
+    const yy = by + i*gap;
+    const frac = (r[d.key]-1)/(sc-1);
+    x.textAlign='left'; x.fillStyle='#f3e9d8'; x.font=`600 ${fLabel}px 'Hanken Grotesk', Arial, sans-serif`;
+    x.fillText(d.name, bx, yy);
+    x.fillStyle='#3d3128'; roundRect(x,bx,yy+barH,bw,barH,barH/2); x.fill();
+    x.fillStyle=cardCol(frac); roundRect(x,bx,yy+barH,Math.max(barH,bw*frac),barH,barH/2); x.fill();
+    x.textAlign='right'; x.fillStyle=cardCol(frac); x.font=`700 ${fVal}px 'Hanken Grotesk', Arial, sans-serif`;
+    x.fillText(r[d.key]+'/'+sc, bx+bw, yy);
+  });
+}
+function drawFooter(x, W, H){
+  x.textAlign='center';
+  x.fillStyle='#a89580'; x.font=`400 ${Math.round(W*0.016)}px 'Hanken Grotesk', Arial, sans-serif`;
+  x.fillText('7-dimension method · 5 = average', W/2, H - H*0.045);
+  x.fillStyle='#d8a657'; x.font=`700 ${Math.round(W*0.024)}px 'Hanken Grotesk', Arial, sans-serif`;
+  x.fillText((channel ? channel : 'The Rating Table').toUpperCase(), W/2, H - H*0.075);
+}
+function fitTitle(x, name, maxChars){ return name.length > maxChars ? name.slice(0,maxChars-1)+'…' : name; }
+
+async function drawScorecard(fmt, name, r, scale, overall, artUrl){
+  const sc = scale || 5;
+  const im = artUrl ? await loadImage(artUrl) : null;
+  const cv = document.getElementById('cardCanvas');
+  const x = cv.getContext('2d');
+  const [v] = verdictFor(overall);
+
+  if (fmt === 'vertical'){
+    const W=1080, H=1920; cv.width=W; cv.height=H; drawFrame(x,W,H);
+    drawArt(x, im, name, 90, 110, 900, 560, 24);
+    x.textAlign='center'; x.textBaseline='alphabetic'; x.fillStyle='#f3e9d8';
+    x.font='900 64px Fraunces, Georgia, serif';
+    x.fillText(fitTitle(x,name,20), W/2, 760);
+    const oc = drawRing(x, W/2, 1000, 160, 30, overall);
+    x.fillStyle=oc; x.textAlign='center'; x.font='700 50px "Hanken Grotesk", Arial, sans-serif';
+    x.fillText(v.toUpperCase(), W/2, 1240);
+    drawBars(x, r, sc, 150, 1330, 780, 62, 15, 31, 31);
+    drawFooter(x, W, H);
+  }
+  else if (fmt === 'square'){
+    const W=1080, H=1080; cv.width=W; cv.height=H; drawFrame(x,W,H);
+    x.textAlign='left'; x.textBaseline='alphabetic'; x.fillStyle='#f3e9d8';
+    x.font='900 50px Fraunces, Georgia, serif';
+    x.fillText(fitTitle(x,name,22), 64, 108);
+    drawArt(x, im, name, 64, 150, 360, 360, 20);
+    const oc = drawRing(x, 740, 330, 150, 26, overall);
+    x.fillStyle=oc; x.textAlign='center'; x.font='700 40px "Hanken Grotesk", Arial, sans-serif';
+    x.fillText(v.toUpperCase(), 740, 330+150+58);
+    drawBars(x, r, sc, 90, 600, 900, 54, 14, 26, 26);
+    drawFooter(x, W, H);
+  }
+  else { // wide 16:9
+    const W=1280, H=720; cv.width=W; cv.height=H; drawFrame(x,W,H);
+    x.textAlign='left'; x.textBaseline='alphabetic'; x.fillStyle='#f3e9d8';
+    x.font='900 50px Fraunces, Georgia, serif';
+    x.fillText(fitTitle(x,name,24), 60, 96);
+    drawArt(x, im, name, 60, 150, 300, 300, 18);
+    const oc = drawRing(x, 560, 330, 128, 24, overall);
+    x.fillStyle=oc; x.textAlign='center'; x.font='700 38px "Hanken Grotesk", Arial, sans-serif';
+    x.fillText(v.toUpperCase(), 560, 330+128+56);
+    drawBars(x, r, sc, 740, 168, 480, 60, 13, 25, 25);
+    drawFooter(x, W, H);
+  }
+  return cv;
+}
+
+function downloadCanvas(name){
+  const cv = document.getElementById('cardCanvas');
+  cv.toBlob(b => {
+    const url = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = url; a.download = (name||'scorecard').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'-scorecard.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+}
+async function ensureFonts(){ try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(e){} }
+async function exportCurrent(){
+  const name = document.getElementById('gameName').value.trim();
+  if (!name){ toast('Name the game first'); document.getElementById('gameName').focus(); return; }
+  await ensureFonts();
+  await drawScorecard(exportFormat, name, ratings, 5, computeOverall(ratings, weights), currentArt);
+  downloadCanvas(name);
+  toast('Scorecard saved (' + exportFormat + ')');
+}
+async function exportGame(id){
+  const gme = games.find(x=>x.id===id); if(!gme) return;
+  await ensureFonts();
+  const art = gme.hasArt ? await getArt(gme.id) : null;
+  await drawScorecard(exportFormat, gme.name, gme.ratings, gme.scale||10, gme.overall, art);
+  downloadCanvas(gme.name);
+  toast('Scorecard saved (' + exportFormat + ')');
+}
+
+/* ---------- PWA: install prompt + service worker ---------- */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault(); deferredPrompt = e;
+  const b = document.getElementById('installBtn'); if (b) b.style.display='inline-flex';
+});
+async function doInstall(){
+  if (!deferredPrompt){ toast('Use your browser menu → “Add to Home Screen”'); return; }
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBtn').style.display='none';
+}
+window.addEventListener('appinstalled', ()=>{ toast('Installed!'); });
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+/* ---------- Init ---------- */
+renderDims();
+DIMS.forEach(d => { document.getElementById('val-'+d.key).style.color = dimColor(3); });
+loadAll();
+</script>
+</body>
+</html>
