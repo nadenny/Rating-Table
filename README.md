@@ -19,9 +19,15 @@ Fun & Enjoyment · Depth & Strategy · Replayability · Player Interaction · Ac
 index.html              the whole app
 manifest.webmanifest    PWA manifest (name, icons, colors)
 sw.js                   service worker (offline + install)
-icons/                  app icons (192, 512, maskable, apple-touch, favicon)
+.nojekyll               tells GitHub Pages to serve files as-is
+icon-192.png            app icons — keep these next to index.html
+icon-512.png
+icon-512-maskable.png
+apple-touch-icon.png
+favicon-64.png
 README.md               this file
 ```
+All files sit together at the top level — there are no subfolders. Upload every file into the repo root (select them all at once).
 
 ## Deploy to GitHub Pages
 
@@ -53,7 +59,7 @@ The app icon is **embedded directly in `manifest.webmanifest` and `index.html`**
 
 If you ever see a generic gray icon on install, it means the manifest wasn't read. Check that:
 - You installed from the **live GitHub Pages URL** (`https://<you>.github.io/<repo>/`), not a local `file://` path or a preview.
-- `index.html`, `manifest.webmanifest`, and `sw.js` all sit in the **repo root** (not inside a subfolder). If you dragged a folder into GitHub's uploader, open the repo and confirm the files aren't nested under an extra `rating-table/` directory.
+- every file — including the five `.png` icons — sits in the **repo root** next to `index.html`. Confirm each icon loads, e.g. `https://<you>.github.io/<repo>/icon-512.png`.
 
 ### If `manifest.webmanifest` returns 404 on your live site
 The file is in the repo but GitHub isn't serving it. Fix:

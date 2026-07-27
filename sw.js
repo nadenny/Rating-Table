@@ -1,16 +1,16 @@
 /* The Rating Table — service worker
    Cache-first for the app shell so it works offline and installs cleanly.
    Bump CACHE version whenever you change index.html or icons. */
-const CACHE = 'rating-table-v11';
+const CACHE = 'rating-table-v13';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-512-maskable.png',
-  './icons/apple-touch-icon.png',
-  './icons/favicon-64.png'
+  './icon-192.png',
+  './icon-512.png',
+  './icon-512-maskable.png',
+  './apple-touch-icon.png',
+  './favicon-64.png'
 ];
 
 self.addEventListener('install', (e) => {
