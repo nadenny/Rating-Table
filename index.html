@@ -294,6 +294,13 @@
   .solo-title{font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:var(--cream);}
   .solo-desc{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4;font-style:italic;}
   .solo-desc em{color:var(--brass);font-style:normal;}
+  .mode-seg{display:flex;gap:7px;margin-top:14px;}
+  .mode-seg button{flex:1;padding:11px 4px;border:1px solid var(--panel-line);background:var(--panel);
+    color:var(--muted);border-radius:11px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1;transition:.15s;}
+  .mode-seg button .sz{font-size:10px;font-weight:500;color:var(--muted);}
+  .mode-seg button.on{background:#2a1414;color:var(--cream);border-color:var(--brass-dim);}
+  .mode-seg button.on .sz{color:var(--brass);}
   .switch{position:relative;width:52px;height:30px;border-radius:16px;border:1px solid var(--panel-line);
     background:#130c0c;cursor:pointer;flex-shrink:0;transition:.2s;padding:0;}
   .switch .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
@@ -410,14 +417,14 @@
       </div>
     </div>
 
-    <!-- Solo mode -->
+    <!-- Rating mode -->
     <div class="card solo-card">
-      <div class="solo-row">
-        <div>
-          <div class="solo-title">Solo game</div>
-          <div class="solo-desc">Swaps Player Interaction for <em>Solo A.I. Ease</em> and tags the solo goal.</div>
-        </div>
-        <button class="switch" id="soloSwitch" role="switch" aria-checked="false" onclick="toggleSolo()"><span class="knob"></span></button>
+      <div class="solo-title">Rating mode</div>
+      <div class="solo-desc">Multiplayer uses Player Interaction · Solo swaps in <em>Solo A.I. Ease</em> · Both rates all 8.</div>
+      <div class="mode-seg" id="modeSeg">
+        <button data-m="mp" onclick="setMode('mp')">Multiplayer<span class="sz">7 metrics</span></button>
+        <button data-m="solo" onclick="setMode('solo')">Solo<span class="sz">7 metrics</span></button>
+        <button data-m="both" onclick="setMode('both')">Both<span class="sz">8 metrics</span></button>
       </div>
       <div id="soloExtra" style="display:none;">
         <div class="solo-sub">Solo goal <span class="solo-hint">— pick any that apply</span></div>
@@ -528,21 +535,25 @@ let sortMode = 'score';
 let channel = '';
 let currentArt = null;        // dataURL of box art for the in-progress rating
 let exportFormat = 'wide';    // wide | square | vertical
-let soloMode = false;         // rate as a solo game
-let soloExcludeAI = false;    // this solo game has no A.I. — drop that category
+let rateMode = 'mp';          // 'mp' | 'solo' | 'both'
+let soloExcludeAI = false;    // solo game has no A.I. — drop that category
 let soloTypes = [];           // any of: score, ai, objective
 
 DIMS.forEach(d => { ratings[d.key] = 3; weights[d.key] = 3; }); // ratings 1-5 (3=avg), weights 1-5 (3=equal)
 ratings[DIM_SOLOAI.key] = 3; weights[DIM_SOLOAI.key] = 3;
 
-// The dimension list in effect right now (swap in Solo A.I. when solo)
-function activeDims(){
-  return soloMode ? DIMS.map(d => d.key==='inter' ? DIM_SOLOAI : d) : DIMS;
+function modeHasSolo(m){ return m === 'solo' || m === 'both'; }
+// dims shown for a mode: mp=7 (with Player Interaction), solo=7 (Solo A.I. swapped in), both=8
+function dimsForMode(m){
+  if (m === 'solo') return DIMS.map(d => d.key==='inter' ? DIM_SOLOAI : d);
+  if (m === 'both') return [...DIMS, DIM_SOLOAI];
+  return DIMS;
 }
-// …minus anything excluded (Solo A.I. when the game has none)
-function scoringDims(solo, excludeAI){
-  let ds = solo ? DIMS.map(d => d.key==='inter' ? DIM_SOLOAI : d) : DIMS;
-  if (solo && excludeAI) ds = ds.filter(d => d.key !== 'soloai');
+function activeDims(){ return dimsForMode(rateMode); }
+// …minus Solo A.I. when excluded (game has no bot)
+function scoringDims(m, excludeAI){
+  let ds = dimsForMode(m);
+  if (modeHasSolo(m) && excludeAI) ds = ds.filter(d => d.key !== 'soloai');
   return ds;
 }
 
@@ -645,10 +656,11 @@ function renderDims(){
     if (val) val.style.color = dimColor(ratings[d.key]);
   });
 }
-function toggleSolo(){
-  soloMode = !soloMode;
-  if (!soloMode){ soloExcludeAI = false; }
+function setMode(m){
+  rateMode = m;
+  if (!modeHasSolo(m)){ soloExcludeAI = false; }
   if (ratings['soloai'] == null) ratings['soloai'] = 3;
+  if (weights['soloai'] == null) weights['soloai'] = 3;
   updateSoloUI();
   renderDims(); renderWeights(); recompute();
 }
@@ -662,10 +674,8 @@ function toggleSoloType(t){
   updateSoloUI();
 }
 function updateSoloUI(){
-  const sw = document.getElementById('soloSwitch');
-  sw.classList.toggle('on', soloMode);
-  sw.setAttribute('aria-checked', soloMode ? 'true':'false');
-  document.getElementById('soloExtra').style.display = soloMode ? 'block' : 'none';
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === rateMode));
+  document.getElementById('soloExtra').style.display = modeHasSolo(rateMode) ? 'block' : 'none';
   document.querySelectorAll('.soltype').forEach(b => b.classList.toggle('on', soloTypes.includes(b.dataset.t)));
 }
 function dropFocus(){
@@ -716,7 +726,7 @@ function computeOverall(r, w, dims){
   return (avg5 - 1) / 4 * 10;          // rescaled to 0-10 so that 3 -> 5 (true average)
 }
 function recompute(){
-  const s = computeOverall(ratings, weights, scoringDims(soloMode, soloExcludeAI));
+  const s = computeOverall(ratings, weights, scoringDims(rateMode, soloExcludeAI));
   const col = overallColor(s);
   document.getElementById('ringNum').textContent = s.toFixed(1);
   document.getElementById('ringNum').setAttribute('fill', col);
@@ -733,7 +743,7 @@ function recompute(){
 async function saveGame(){
   const name = document.getElementById('gameName').value.trim();
   if (!name){ toast('Give the game a name first'); document.getElementById('gameName').focus(); return; }
-  const overall = computeOverall(ratings, weights, scoringDims(soloMode, soloExcludeAI));
+  const overall = computeOverall(ratings, weights, scoringDims(rateMode, soloExcludeAI));
   const entry = {
     id: editingId || ('g'+Date.now()),
     name,
@@ -741,9 +751,9 @@ async function saveGame(){
     weights: {...weights},
     scale: 5,
     overall,
-    solo: soloMode,
-    soloExcludeAI: soloMode ? soloExcludeAI : false,
-    soloTypes: soloMode ? [...soloTypes] : [],
+    mode: rateMode,
+    soloExcludeAI: modeHasSolo(rateMode) ? soloExcludeAI : false,
+    soloTypes: modeHasSolo(rateMode) ? [...soloTypes] : [],
     hasArt: !!currentArt,
     notes: document.getElementById('notes').value.trim(),
     savedAt: Date.now()
@@ -769,7 +779,7 @@ function resetForm(toAverage){
   document.getElementById('gameName').value = '';
   document.getElementById('notes').value = '';
   currentArt = null; showArtPreview();
-  soloMode = false; soloExcludeAI = false; soloTypes = [];
+  rateMode = 'mp'; soloExcludeAI = false; soloTypes = [];
   activeDims().forEach(d => { ratings[d.key] = 3; });
   ratings['soloai'] = 3; ratings['inter'] = 3;
   updateSoloUI();
@@ -805,12 +815,14 @@ function renderCollection(){
     const [v] = verdictFor(g.overall);
     const card = document.createElement('div');
     card.className = 'game';
-    const gdims = scoringDims(g.solo, g.soloExcludeAI);
+    const gmode = g.mode || (g.solo ? 'solo' : 'mp');
+    const gdims = scoringDims(gmode, g.soloExcludeAI);
     let brk = gdims.map(d =>
       `<div class="brk"><span class="bn">${d.name}</span><span class="bv" style="color:${dimColor(g.ratings[d.key], g.scale||10)}">${g.ratings[d.key]}<span style="color:var(--muted);font-weight:400;font-size:11px"> / ${g.scale||10}</span></span></div>`
     ).join('');
-    const soloTag = g.solo ? `<span class="solo-tag">SOLO</span>` : '';
-    const goals = (g.solo && g.soloTypes && g.soloTypes.length)
+    const modeLabel = gmode==='both' ? 'SOLO + MP' : gmode==='solo' ? 'SOLO' : '';
+    const soloTag = modeLabel ? `<span class="solo-tag">${modeLabel}</span>` : '';
+    const goals = (modeHasSolo(gmode) && g.soloTypes && g.soloTypes.length)
       ? `<div class="gsolo">Solo goal: ${g.soloTypes.map(t=>SOLO_TYPES[t]).join(' · ')}${g.soloExcludeAI?' · no A.I.':''}</div>` : '';
     card.innerHTML = `
       <div class="game-head" onclick="this.parentElement.classList.toggle('open')">
@@ -841,7 +853,7 @@ async function editGame(id){
   document.getElementById('gameName').value = g.name;
   document.getElementById('notes').value = g.notes || '';
   currentArt = g.hasArt ? (await getArt(id)) : null; showArtPreview();
-  soloMode = !!g.solo; soloExcludeAI = !!g.soloExcludeAI; soloTypes = g.soloTypes ? [...g.soloTypes] : [];
+  rateMode = g.mode || (g.solo ? 'solo' : 'mp'); soloExcludeAI = !!g.soloExcludeAI; soloTypes = g.soloTypes ? [...g.soloTypes] : [];
   const conv = (rv) => (g.scale||10)!==5 ? Math.max(1, Math.min(5, Math.round((rv-1)/((g.scale||10)-1)*4)+1)) : rv;
   ratings = {}; weights = {};
   DIMS.forEach(d => { ratings[d.key] = g.ratings[d.key]!=null ? conv(g.ratings[d.key]) : 3; weights[d.key] = g.weights ? (g.weights[d.key]||3) : 3; });
@@ -914,21 +926,21 @@ function closeMethod(){ document.getElementById('methodModal').classList.remove(
 function summaryText(name, r, scale, overall, opts){
   opts = opts || {};
   const sc = scale || 5;
-  const dims = scoringDims(opts.solo, opts.excludeAI);
+  const dims = scoringDims(opts.mode, opts.excludeAI);
   const line = dims.map(d => `${d.name.split(' ')[0]} ${r[d.key]}`).join(' · ');
   const [v] = verdictFor(overall);
   let out = `🎲 ${name} — ${overall.toFixed(1)}/10 (${v})\n${line}  (each /${sc})`;
-  if (opts.solo){
+  if (modeHasSolo(opts.mode)){
     const goals = (opts.soloTypes||[]).map(t=>SOLO_TYPES[t]).join(', ');
-    out += `\nSolo${goals?': '+goals:''}`;
+    out += `\n${opts.mode==='both'?'Solo + Multiplayer':'Solo'}${goals?' — '+goals:''}`;
   }
   if (channel) out += `\nRated on ${channel} · 5 = average`;
   return out;
 }
 function copyCurrent(){
   const name = document.getElementById('gameName').value.trim() || 'Untitled game';
-  const overall = computeOverall(ratings, weights, scoringDims(soloMode, soloExcludeAI));
-  const text = summaryText(name, ratings, 5, overall, {solo:soloMode, excludeAI:soloExcludeAI, soloTypes});
+  const overall = computeOverall(ratings, weights, scoringDims(rateMode, soloExcludeAI));
+  const text = summaryText(name, ratings, 5, overall, {mode:rateMode, excludeAI:soloExcludeAI, soloTypes});
   navigator.clipboard.writeText(text).then(()=>toast('Summary copied'),()=>toast('Copy failed'));
 }
 
@@ -1128,9 +1140,10 @@ function drawPips(x, r, sc, bx, by, bw, gap, fName, pipR, dims){
   });
 }
 function drawSoloBadge(x, cx, y, opts, size, maxW){
-  if(!opts || !opts.solo) return;
+  if(!opts || !modeHasSolo(opts.mode)) return;
   const goals = (opts.soloTypes||[]).map(t=>SOLO_TYPES[t]).join(' · ');
-  let txt = 'SOLO' + (goals ? '  ·  ' + goals : (opts.excludeAI ? '  ·  no A.I.' : ''));
+  const prefix = opts.mode==='both' ? 'SOLO + MP' : 'SOLO';
+  let txt = prefix + (goals ? '  ·  ' + goals : (opts.excludeAI ? '  ·  no A.I.' : ''));
   x.textAlign='center'; x.textBaseline='middle'; x.fillStyle='#cdaa3a';
   let s=size; x.font=`600 ${s}px 'Spectral', Georgia, serif`;
   if(maxW){ while(x.measureText(txt).width>maxW && s>size*0.6){ s--; x.font=`600 ${s}px 'Spectral', Georgia, serif`; } }
@@ -1168,7 +1181,10 @@ function fitTitle(x, name, maxChars){ return name.length > maxChars ? name.slice
 async function drawScorecard(fmt, name, r, scale, overall, artUrl, opts){
   opts = opts || {};
   const sc = scale || 5;
-  const dims = scoringDims(opts.solo, opts.excludeAI);
+  const dims = scoringDims(opts.mode, opts.excludeAI);
+  const n = dims.length;
+  const hasBadge = modeHasSolo(opts.mode);
+  const fitGap = (by, limit, maxGap) => n>1 ? Math.min(maxGap, (limit-by)/(n-1)) : maxGap;
   const im = artUrl ? await loadImage(artUrl) : null;
   await ensureSil();
   const cv = document.getElementById('cardCanvas');
@@ -1186,8 +1202,9 @@ async function drawScorecard(fmt, name, r, scale, overall, artUrl, opts){
     drawFlourish(x, W/2, 798, 320, 'rgba(205,170,58,.55)');
     const oc = drawRing(x, W/2, 1010, 164, 32, overall);
     drawVerdict(x, W/2, 1252, v.toUpperCase(), oc, 56, 760);
-    drawSoloBadge(x, W/2, 1312, opts, 27, 820);
-    drawPips(x, r, sc, 120, 1378, 840, 62, 36, 18, dims);
+    if(hasBadge) drawSoloBadge(x, W/2, 1312, opts, 27, 820);
+    const by = hasBadge ? 1372 : 1330;
+    drawPips(x, r, sc, 120, by, 840, fitGap(by,1760,62), 36, 18, dims);
     drawFooter(x, W, H);
   }
   else if (fmt === 'square'){
@@ -1201,8 +1218,9 @@ async function drawScorecard(fmt, name, r, scale, overall, artUrl, opts){
     drawArt(x, im, name, 66, 164, 350, 350, 20);
     const oc = drawRing(x, 748, 308, 150, 28, overall);
     drawVerdict(x, 748, 514, v.toUpperCase(), oc, 44, 560);
-    drawSoloBadge(x, 748, 574, opts, 22, 560);
-    drawPips(x, r, sc, 90, 624, 900, 56, 30, 15, dims);
+    if(hasBadge) drawSoloBadge(x, 748, 574, opts, 22, 560);
+    const by = hasBadge ? 624 : 592;
+    drawPips(x, r, sc, 90, by, 900, fitGap(by,968,56), 30, 15, dims);
     drawFooter(x, W, H);
   }
   else { // wide 16:9
@@ -1216,8 +1234,9 @@ async function drawScorecard(fmt, name, r, scale, overall, artUrl, opts){
     drawArt(x, im, name, 58, 150, 250, 250, 18);
     const oc = drawRing(x, 495, 318, 120, 22, overall);
     drawVerdict(x, 495, 500, v.toUpperCase(), oc, 40, 300);
-    drawPips(x, r, sc, 660, 172, 560, 56, 26, 12, dims);
-    drawSoloBadge(x, 640, 578, opts, 27, 1060);
+    const limit = hasBadge ? 530 : 632;
+    drawPips(x, r, sc, 660, 172, 560, fitGap(172,limit,56), 26, 12, dims);
+    if(hasBadge) drawSoloBadge(x, 640, 578, opts, 27, 1060);
     drawFooter(x, W, H);
   }
   return cv;
@@ -1238,8 +1257,8 @@ async function exportCurrent(){
   const name = document.getElementById('gameName').value.trim();
   if (!name){ toast('Name the game first'); document.getElementById('gameName').focus(); return; }
   await ensureFonts();
-  const opts = {solo:soloMode, excludeAI:soloExcludeAI, soloTypes};
-  await drawScorecard(exportFormat, name, ratings, 5, computeOverall(ratings, weights, scoringDims(soloMode, soloExcludeAI)), currentArt, opts);
+  const opts = {mode:rateMode, excludeAI:soloExcludeAI, soloTypes};
+  await drawScorecard(exportFormat, name, ratings, 5, computeOverall(ratings, weights, scoringDims(rateMode, soloExcludeAI)), currentArt, opts);
   downloadCanvas(name);
   toast('Scorecard saved (' + exportFormat + ')');
 }
@@ -1247,7 +1266,7 @@ async function exportGame(id){
   const gme = games.find(x=>x.id===id); if(!gme) return;
   await ensureFonts();
   const art = gme.hasArt ? await getArt(gme.id) : null;
-  const opts = {solo:!!gme.solo, excludeAI:!!gme.soloExcludeAI, soloTypes:gme.soloTypes||[]};
+  const opts = {mode: gme.mode || (gme.solo ? 'solo' : 'mp'), excludeAI:!!gme.soloExcludeAI, soloTypes:gme.soloTypes||[]};
   await drawScorecard(exportFormat, gme.name, gme.ratings, gme.scale||10, gme.overall, art, opts);
   downloadCanvas(gme.name);
   toast('Scorecard saved (' + exportFormat + ')');
