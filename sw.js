@@ -1,7 +1,7 @@
 /* The Rating Table — service worker
    Cache-first for the app shell so it works offline and installs cleanly.
    Bump CACHE version whenever you change index.html or icons. */
-const CACHE = 'rating-table-v14';
+const CACHE = 'rating-table-v15';
 const ASSETS = [
   './',
   './index.html',

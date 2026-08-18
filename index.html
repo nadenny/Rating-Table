@@ -292,6 +292,9 @@
   /* Solo mode */
   .solo-row{display:flex;justify-content:space-between;align-items:center;gap:14px;}
   .solo-title{font-family:'Cinzel',serif;font-weight:600;font-size:16px;color:var(--cream);}
+  .backup-bar{display:flex;gap:8px;margin-bottom:8px;}
+  .backup-bar .chip{flex:1;padding:11px;text-align:center;border-color:var(--brass-dim);color:var(--brass);}
+  .backup-note{font-size:11.5px;color:var(--muted);font-style:italic;line-height:1.4;margin-bottom:16px;}
   .solo-desc{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4;font-style:italic;}
   .solo-desc em{color:var(--brass);font-style:normal;}
   .mode-seg{display:flex;gap:7px;margin-top:14px;}
@@ -480,6 +483,12 @@
 
   <!-- COLLECTION VIEW -->
   <div id="collView" style="display:none;">
+    <div class="backup-bar">
+      <button class="chip" onclick="exportBackup()">⤓ Back up all data</button>
+      <button class="chip" onclick="document.getElementById('importFile').click()">⤒ Restore</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
+    </div>
+    <div class="backup-note">Your ratings live only on this device. Back up regularly — reinstalling the app or clearing the browser can erase them.</div>
     <div class="sortbar">
       <span class="lbl">Sort</span>
       <button class="chip on" id="sortScore" onclick="setSort('score')">Score</button>
@@ -584,6 +593,41 @@ const Store = {
 async function setArt(id, data){ return Store.set('bgr:art:'+id, data); }
 async function getArt(id){ return Store.get('bgr:art:'+id); }
 async function delArt(id){ return Store.remove('bgr:art:'+id); }
+
+/* ---------- Backup & restore (guards against local data loss) ---------- */
+function exportBackup(){
+  const data = {};
+  try {
+    for (let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.startsWith('bgr:')) data[k]=localStorage.getItem(k); }
+  } catch(e){}
+  // include in-memory fallback keys too
+  for (const k in _mem){ if(k.startsWith('bgr:') && !(k in data)) data[k]=_mem[k]; }
+  const payload = { app:'the-rating-table', v:1, exported:Date.now(), games:(games||[]).length, data };
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'rating-table-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  toast('Backup downloaded');
+}
+function importBackup(input){
+  const f = input.files && input.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    let data;
+    try { const p = JSON.parse(e.target.result); data = p && p.data ? p.data : p; } catch(err){ toast('Could not read that file'); input.value=''; return; }
+    if (!data || typeof data !== 'object'){ toast('Not a valid backup'); input.value=''; return; }
+    const keys = Object.keys(data).filter(k => k.startsWith('bgr:'));
+    if (!keys.length){ toast('No Rating Table data in that file'); input.value=''; return; }
+    if (games && games.length && !confirm('Restore this backup? It replaces your current list of '+games.length+' game(s).')){ input.value=''; return; }
+    for (const k of keys){ await Store.set(k, data[k]); }
+    await loadAll();
+    toast('Restored '+games.length+' game'+(games.length===1?'':'s'));
+    input.value='';
+  };
+  reader.readAsText(f);
+}
 
 async function loadAll(){
   try { const g = await Store.get('bgr:games'); games = g ? JSON.parse(g) : []; } catch(e){ games = []; }
@@ -1294,6 +1338,8 @@ if ('serviceWorker' in navigator){
 updateSoloUI();
 renderDims();
 loadAll();
+// Ask the browser to keep our data (reduces eviction; helps it survive longer)
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); } catch(e){}
 </script>
 </body>
 </html>
